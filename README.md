@@ -1,11 +1,42 @@
 # ShotTracer – golf shot tracer for any ball colour
 
-A desktop app inspired by **SmoothSwing**: load (or record) a swing video, and it finds the
-golf ball after impact and draws a glowing shot-tracer line over its flight. Unlike tracers that
-only look for a white ball, you can track **white, yellow, orange, red, pink, lime, blue** balls –
-or **pick any colour straight from the video** with the eyedropper.
+Inspired by **SmoothSwing**: load (or record) a swing video, and it finds the golf ball after
+impact and draws a glowing shot-tracer line over its flight. Unlike tracers that only look for a
+white ball, you can track **white, yellow, orange, red, pink, lime, blue** balls – or **pick any
+colour straight from the video** with the eyedropper.
 
-## Install & run
+It comes in two forms that share the same tracking algorithm:
+
+| | Where | Runs on |
+|---|---|---|
+| **Phone app (PWA)** | `web/` | Any modern phone/desktop browser. All tracking runs on the device in a Web Worker – no video is uploaded. Installable to the home screen, works offline. |
+| **Desktop app** | `golf_tracer/`, `main.py` | Windows/macOS/Linux with Python (PySide6 + OpenCV). |
+
+## Phone app (PWA)
+
+**Deploy:** import this repository in Vercel – `vercel.json` serves the static `web/` folder
+(no build step) and `.vercelignore` keeps the Python app out of the deployment. Any static host
+with HTTPS works too (HTTPS is required for the camera and for installing the app).
+
+**Try it locally:** serve `web/` over `localhost`, e.g. `npx http-server web` (a server with
+HTTP Range support is needed so the browser can seek in videos), then open the printed URL.
+
+**On the phone:** open the site → *Share → Add to Home Screen* (iOS) or *Install app* (Android).
+
+1. **Open** a swing video from the gallery (or **Camera** → **REC** to record one; it is analysed
+   as soon as you stop). *Try demo clip* loads a sample.
+2. Pick the **ball color**, or tap *Pick ball color from video* and tap the ball.
+3. *(optional)* **Mark ball at address** – tap the ball before the swing.
+4. **Auto Track Shot** – the clip is analysed on the phone and replays with the tracer.
+5. Style it in **Tracer**; use **Manual** (tap ball, apex, landing) if tracking misses.
+6. **Export** – records the clip with the tracer burned in, then *Share / Save to Photos* or
+   *Download* (MP4 where the browser supports it, otherwise WebM).
+
+Layout of `web/js`: `colors.js`, `detector.js`, `tracker.js`, `fit.js`, `analysis.js` are the
+tracking engine (a JavaScript port of the Python modules below), `worker.js` runs it off the UI
+thread, `render.js` draws tracers, `app.js` is the UI.
+
+## Desktop app – install & run
 
 ```bash
 pip install -r requirements.txt
@@ -52,12 +83,14 @@ Shortcuts: `Space` play/pause · `←/→` step frame · `Ctrl+O` open · `Ctrl+
 white glove swinging past, white clouds, camera shake, sensor noise and motion blur.
 
 ```bash
-python tests/test_tracking.py     # accuracy table for every ball colour at 60 and 30 fps
+python tests/test_tracking.py     # Python engine: accuracy table for every ball colour at 60 and 30 fps
+python tests/test_web_engine.py   # JavaScript (PWA) engine, run through Node on the same videos
 python -m pytest tests -q
 ```
 
-Current results: every colour is found, launch frame within ±1 frame, 96–100 % of the flight
-covered, mean error 0.8–2.8 px; using the wrong colour profile finds nothing.
+Current results for both engines: every colour is found, launch frame within ±1 frame,
+89–100 % of the flight covered, mean error 0.8–2.8 px; using the wrong colour profile finds
+nothing.
 
 Tips for real footage: film from behind (down-the-line) on a tripod if possible, use 60 fps or
 higher, and keep the ball's background contrasting with the ball colour (a white ball against a

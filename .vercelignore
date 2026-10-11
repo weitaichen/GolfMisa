@@ -1,0 +1,9 @@
+# The site is the static PWA in web/. The Python desktop app is not deployed
+# (Vercel would otherwise mistake main.py for a Python server).
+# Leading "/" anchors a pattern to the repository root, so web/samples/ is kept.
+/*.py
+/golf_tracer/
+/tests/
+/tools/
+/samples/
+/requirements.txt

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0f13">
+  <meta name="description" content="Golf shot tracer for any ball colour. Runs entirely on your phone.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ShotTracer">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/app.css">
+  <title>ShotTracer</title>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Shot<span>Tracer</span></div>
+    <div class="actions">
+      <label class="btn" id="btnOpen" role="button" tabindex="0">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h6l2 2h8v10H4z"/></svg><span>Open</span>
+        <input type="file" id="fileInput" accept="video/*" hidden>
+      </label>
+      <button class="btn" id="btnCamera" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-2h6l2 2h3v10H4z"/><circle cx="12" cy="13" r="3.2"/></svg><span>Camera</span>
+      </button>
+      <button class="btn" id="btnExport" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 19h14"/></svg><span>Export</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage-wrap" id="stageWrap">
+      <div class="stage" id="stage">
+        <video id="video" playsinline muted preload="auto"></video>
+        <canvas id="overlay"></canvas>
+        <div class="hint" id="hint" hidden></div>
+        <div class="empty" id="empty">
+          <div class="empty-icon">⛳</div>
+          <h1>Trace your golf shot</h1>
+          <p>Open a swing video or use the camera. Everything runs on this device – nothing is uploaded.</p>
+          <div class="empty-actions">
+            <button class="btn primary" id="btnEmptyOpen">Open video</button>
+            <button class="btn" id="btnDemo">Try demo clip</button>
+          </div>
+        </div>
+        <div class="busy" id="busy" hidden>
+          <div class="busy-text" id="busyText">Working…</div>
+          <div class="bar"><i id="busyBar"></i></div>
+          <div class="busy-actions">
+            <button class="btn small primary" id="btnContinue" hidden>Continue</button>
+            <button class="btn small" id="btnCancel">Cancel</button>
+          </div>
+        </div>
+        <button class="rec" id="btnRec" hidden>REC</button>
+      </div>
+      <div class="transport" id="transport">
+        <button class="icon" id="btnPrev" aria-label="Previous frame">
+          <svg viewBox="0 0 24 24"><path d="M7 5v14M18 5l-9 7 9 7z"/></svg></button>
+        <button class="play" id="btnPlay" aria-label="Play">
+          <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5l11 7-11 7z"/></svg></button>
+        <button class="icon" id="btnNext" aria-label="Next frame">
+          <svg viewBox="0 0 24 24"><path d="M17 5v14M6 5l9 7-9 7z"/></svg></button>
+        <input type="range" id="scrub" min="0" max="1000" value="0" step="1" aria-label="Position">
+        <span class="time" id="time">0:00.00</span>
+        <select id="speed" aria-label="Playback speed">
+          <option value="0.25">¼×</option><option value="0.5">½×</option><option value="1" selected>1×</option>
+        </select>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="ball" class="on">Ball</button>
+        <button role="tab" data-tab="tracer">Tracer</button>
+        <button role="tab" data-tab="manual">Manual</button>
+        <button role="tab" data-tab="data">Data</button>
+      </nav>
+
+      <div class="tab" data-tab="ball">
+        <div class="label">Ball color</div>
+        <div class="swatches" id="ballSwatches"></div>
+        <div class="muted" id="ballLabel"></div>
+        <button class="btn wide" id="btnPick">🎯 Pick ball color from video</button>
+        <div class="row">
+          <button class="btn wide" id="btnSeed">⛳ Mark ball at address</button>
+          <button class="btn" id="btnClearSeed" hidden>Clear</button>
+        </div>
+        <div class="slider-row"><label for="sens">Sensitivity</label><input type="range" id="sens" min="0" max="100" value="50"><span id="sensVal">50</span></div>
+        <button class="btn primary wide big" id="btnTrack" disabled>Auto Track Shot</button>
+      </div>
+
+      <div class="tab" data-tab="tracer" hidden>
+        <div class="label">Tracer color</div>
+        <div class="swatches small" id="tracerSwatches"></div>
+        <div class="seg" id="styleSeg"></div>
+        <div class="slider-row"><label for="thick">Thickness</label><input type="range" id="thick" min="2" max="16" value="6"><span id="thickVal">6</span></div>
+        <div class="slider-row"><label for="extend">Extend tail</label><input type="range" id="extend" min="0" max="60" value="0"><span id="extendVal">0</span></div>
+        <label class="check"><input type="checkbox" id="chkMarker" checked> Ball marker</label>
+        <label class="check"><input type="checkbox" id="chkDebug"> Show detections</label>
+      </div>
+
+      <div class="tab" data-tab="manual" hidden>
+        <p class="muted">If auto tracking misses, tap the ball, the highest point and where it lands.</p>
+        <button class="btn wide" id="btnManual">✏️ Draw tracer manually</button>
+        <div class="slider-row"><label for="duration">Flight time</label><input type="range" id="duration" min="5" max="80" value="30"><span id="durationVal">3.0 s</span></div>
+        <button class="btn wide" id="btnClearTracer">Clear tracer</button>
+      </div>
+
+      <div class="tab" data-tab="data" hidden>
+        <div class="stats">
+          <div class="stat"><b id="stHang">–</b><span>Hang time</span></div>
+          <div class="stat"><b id="stLaunch">–</b><span>Impact at</span></div>
+          <div class="stat"><b id="stPoints">–</b><span>Ball detections</span></div>
+          <div class="stat"><b id="stConf">–</b><span>Confidence</span></div>
+        </div>
+        <p class="muted" id="perf"></p>
+      </div>
+    </aside>
+  </main>
+
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-card">
+      <div class="sheet-title" id="sheetTitle"></div>
+      <div class="sheet-actions" id="sheetActions"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
